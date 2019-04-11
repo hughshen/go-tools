@@ -2,24 +2,30 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"io"
 	"log"
 	"net"
+	"os"
 )
 
 var (
-	srchost = flag.String("srchost", "0.0.0.0:81", "")
-	dsthost = flag.String("dsthost", "0.0.0.0:80", "")
+	src = flag.String("src", "", "host:port")
+	dst = flag.String("dst", "", "host:port")
 )
 
 func main() {
 	flag.Parse()
 
-	server, err := net.Listen("tcp", *srchost)
+	if *src == "" || *dst == "" {
+		usageAndExit("")
+	}
+
+	server, err := net.Listen("tcp", *src)
 	if err != nil {
 		log.Fatalln(err)
 	}
-	log.Printf("Listening on '%s'\n", *srchost)
+	log.Printf("Listening on '%s'\n", *dst)
 
 	for {
 		client, err := server.Accept()
@@ -34,7 +40,7 @@ func main() {
 func handleRequest(client net.Conn) {
 	defer client.Close()
 
-	remote, err := net.Dial("tcp", *dsthost)
+	remote, err := net.Dial("tcp", *dst)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -43,4 +49,14 @@ func handleRequest(client net.Conn) {
 
 	go io.Copy(remote, client)
 	io.Copy(client, remote)
+}
+
+func usageAndExit(msg string) {
+	if msg != "" {
+		fmt.Fprintf(os.Stderr, msg)
+		fmt.Fprintf(os.Stderr, "\n\n")
+	}
+	flag.Usage()
+	fmt.Fprintf(os.Stderr, "\n")
+	os.Exit(1)
 }
