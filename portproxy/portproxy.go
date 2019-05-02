@@ -30,7 +30,8 @@ func main() {
 	for {
 		client, err := server.Accept()
 		if err != nil {
-			log.Fatalln(err)
+			log.Println(err)
+			continue
 		}
 
 		go handleRequest(client)
@@ -42,7 +43,8 @@ func handleRequest(client net.Conn) {
 
 	remote, err := net.Dial("tcp", *dst)
 	if err != nil {
-		log.Fatalln(err)
+		log.Println(err)
+		return
 	}
 	defer remote.Close()
 	log.Printf("Connection to server '%v' from '%v'\n", remote.RemoteAddr(), client.RemoteAddr())
