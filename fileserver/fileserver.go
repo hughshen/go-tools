@@ -7,9 +7,9 @@ import (
 )
 
 func main() {
-	help := flag.Bool("h", false, "Help message")
-	port := flag.String("p", "8100", "Port to serve on")
-	directory := flag.String("d", ".", "The directory of file to host")
+	help := flag.Bool("help", false, "Help message")
+	host := flag.String("host", "0.0.0.0:8100", "Host to serve on")
+	directory := flag.String("dir", ".", "The directory of file to host")
 
 	flag.Parse()
 
@@ -20,6 +20,6 @@ func main() {
 
 	http.Handle("/", http.FileServer(http.Dir(*directory)))
 
-	log.Printf("Serving %s on HTTP port: %s\n", *directory, *port)
-	log.Fatal(http.ListenAndServe(":"+*port, nil))
+	log.Printf("Serving %s on HTTP %s\n", *directory, *host)
+	log.Fatal(http.ListenAndServe(*host, nil))
 }
