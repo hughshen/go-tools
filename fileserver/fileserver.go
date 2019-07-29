@@ -109,24 +109,34 @@ func downloadFile(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		fileOut, err := os.Create(absPath)
-		if err != nil {
-			w.Write([]byte(err.Error()))
-			return
-		}
-		defer fileOut.Close()
+		w.Write([]byte("Downloading file " + fileName))
 
-		resp, err := http.Get(url)
-		if err != nil {
-			w.Write([]byte(err.Error()))
-			return
-		}
-		defer resp.Body.Close()
+		go func() {
+			log.Printf("Downloading file %s", fileName)
 
-		io.Copy(fileOut, resp.Body)
+			fileOut, err := os.Create(absPath)
+			if err != nil {
+				log.Printf("Download file error %s", err.Error())
+				return
+			}
+			defer fileOut.Close()
 
-		log.Printf("Download file %s", fileName)
-		w.Write([]byte("Download success"))
+			resp, err := http.Get(url)
+			if err != nil {
+				log.Printf("Download file error %s", err.Error())
+				return
+			}
+			defer resp.Body.Close()
+
+			io.Copy(fileOut, resp.Body)
+
+			if _, err := os.Stat(absPath); os.IsNotExist(err) {
+				log.Printf("Downloaded file %s but removed", fileName)
+				return
+			}
+
+			log.Printf("Downloaded file %s", fileName)
+		}()
 	} else {
 		w.Write([]byte("Invalid HTTP " + r.Method + " Method"))
 	}
