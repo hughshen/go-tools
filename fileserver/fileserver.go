@@ -11,24 +11,20 @@ import (
 	"strings"
 )
 
-func main() {
-	help := flag.Bool("help", false, "Help message")
-	host := flag.String("host", "0.0.0.0:8100", "Host to serve on")
-	directory := flag.String("dir", ".", "The directory of file to host")
+var (
+	host    = flag.String("host", "0.0.0.0:8100", "Host to serve on")
+	workDir = flag.String("dir", ".", "The directory of file to host")
+)
 
+func main() {
 	flag.Parse()
 
-	if *help == true {
-		flag.Usage()
-		return
-	}
-
-	http.Handle("/", http.FileServer(http.Dir(*directory)))
+	http.Handle("/", http.FileServer(http.Dir(*workDir)))
 	http.HandleFunc("/upload", uploadFile)
 	http.HandleFunc("/delete", deleteFile)
 	http.HandleFunc("/download", downloadFile)
 
-	log.Printf("Serving %s on HTTP %s\n", *directory, *host)
+	log.Printf("Serving %s on HTTP %s\n", *workDir, *host)
 	log.Fatal(http.ListenAndServe(*host, nil))
 }
 
@@ -41,7 +37,7 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 		}
 		defer file.Close()
 
-		absPath, _ := filepath.Abs("./" + handler.Filename)
+		absPath := getFileAbsPath(handler.Filename)
 
 		if _, err = os.Stat(absPath); err == nil {
 			w.Write([]byte("File '" + handler.Filename + "' already exists"))
@@ -72,7 +68,7 @@ func deleteFile(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		absPath, _ := filepath.Abs("./" + file)
+		absPath := getFileAbsPath(file)
 
 		if _, err := os.Stat(absPath); os.IsNotExist(err) {
 			w.Write([]byte("File '" + file + "' doesn't exists"))
@@ -102,7 +98,7 @@ func downloadFile(w http.ResponseWriter, r *http.Request) {
 
 		_, file := path.Split(url)
 		fileName := strings.Split(file, "?")[0]
-		absPath, _ := filepath.Abs("./" + fileName)
+		absPath := getFileAbsPath(fileName)
 
 		if _, err := os.Stat(absPath); err == nil {
 			w.Write([]byte("File '" + fileName + "' already exists"))
@@ -140,4 +136,9 @@ func downloadFile(w http.ResponseWriter, r *http.Request) {
 	} else {
 		w.Write([]byte("Invalid HTTP " + r.Method + " Method"))
 	}
+}
+
+func getFileAbsPath(name string) string {
+	absPath, _ := filepath.Abs(strings.TrimRight(*workDir, "/") + "/" + name)
+	return absPath
 }
