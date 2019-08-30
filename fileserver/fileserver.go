@@ -100,8 +100,16 @@ func downloadFile(w http.ResponseWriter, r *http.Request) {
 		fileName := strings.Split(file, "?")[0]
 		absPath := getFileAbsPath(fileName)
 
+		tmpPrefix := "_tmp_"
+		absTmpPath := getFileAbsPath(tmpPrefix + fileName)
+
 		if _, err := os.Stat(absPath); err == nil {
 			w.Write([]byte("File '" + fileName + "' already exists"))
+			return
+		}
+
+		if _, err := os.Stat(absTmpPath); err == nil {
+			w.Write([]byte("File '" + fileName + "' is downloading"))
 			return
 		}
 
@@ -110,7 +118,7 @@ func downloadFile(w http.ResponseWriter, r *http.Request) {
 		go func() {
 			log.Printf("Downloading file %s", fileName)
 
-			fileOut, err := os.Create(absPath)
+			fileOut, err := os.Create(absTmpPath)
 			if err != nil {
 				log.Printf("Download file error %s", err.Error())
 				return
@@ -126,8 +134,13 @@ func downloadFile(w http.ResponseWriter, r *http.Request) {
 
 			io.Copy(fileOut, resp.Body)
 
-			if _, err := os.Stat(absPath); os.IsNotExist(err) {
+			if _, err := os.Stat(absTmpPath); os.IsNotExist(err) {
 				log.Printf("Downloaded file %s but removed", fileName)
+				return
+			}
+
+			if os.Rename(absTmpPath, absPath); err != nil {
+				log.Printf("Downloaded file %s but rename fail", fileName)
 				return
 			}
 
